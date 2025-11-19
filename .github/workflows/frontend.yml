@@ -23,7 +23,7 @@ jobs:
           # build-args: 
           #   - DATABASE_URL=${{ secrets.DATABASE_URL }}
           push: true
-          tags: nabin968/gh_Heritage-frontend-app:${{ github.sha }}
+          tags: nabin968/gh-heritage-frontend-app:${{ github.sha }}
       # - name: Deploy to ubuntu server
       #   run: |
       #     echo "${{ secrets.SSH_PRIVATE_KEY }}" &> ~/ssh_key
