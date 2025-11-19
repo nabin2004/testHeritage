@@ -1,0 +1,108 @@
+services:
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
+    restart: unless-stopped
+    command:
+      - "--api.insecure=true"                # Dashboard (only for dev)
+      - "--providers.docker=true"            # Enable Docker provider
+      - "--entrypoints.web.address=:80"      # HTTP entrypoint
+    ports:
+      - "80:80"      # HTTP
+      - "8080:8080"  # Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - proxy   
+      - backend
+
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: heritage-backend
+    restart: unless-stopped
+    networks:
+      - proxy
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`backend.localhost`)"
+      - "traefik.http.services.backend.loadbalancer.server.port=8000"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: heritage-frontend
+    restart: unless-stopped
+    networks:
+      - proxy
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`frontend.localhost`)"
+      - "traefik.http.services.frontend.loadbalancer.server.port=3000"
+    
+  keycloak-db:
+    image: postgres:14
+    container_name: keycloak-db
+    restart: always
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: supersecret123
+    volumes:
+      - keycloak-db-data:/var/lib/postgresql/data
+    networks:
+      - proxy
+      - backend
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: heritagegraph-keycloak
+    environment:
+      KC_PROXY_ADDRESS_FORWARDING: "true"
+      KC_HOSTNAME_STRICT: "true"
+      KC_HOSTNAME: keycloak.localhost
+      KC_PROXY: edge
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: supersecret123
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin123
+      KC_HTTP_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+    networks:
+      - proxy
+      - backend
+    volumes: 
+      - ./keycloak-themes:/opt/keycloak/themes 
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.keycloak.rule=Host(`keycloak.localhost`)"
+      - "traefik.http.routers.keycloak.entrypoints=web"
+      - "traefik.http.services.keycloak.loadbalancer.server.port=8080"
+    command: start-dev
+    restart: unless-stopped
+
+volumes:
+  keycloak-db-data:
+
+networks:
+  backend:
+    driver: bridge
+  proxy:
+    driver: bridge
+

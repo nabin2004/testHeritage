@@ -1,0 +1,21 @@
+db.sqlite3
+.env
+
+# Python specific ignores
+*.pyc
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.venv/
+env/
+.myvenv/
+venv/
+pip-log.txt
+pip-delete-this-arg.txt
+*.egg-info/
+.coverage
+.tox/
+
+
+**/migrations/*.py
+!**/migrations/__init__.py
