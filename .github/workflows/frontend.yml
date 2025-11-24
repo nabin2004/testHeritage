@@ -32,5 +32,5 @@ jobs:
           ssh -o StrictHostKeyChecking=no -i ~/ssh_key ${{ secrets.DEPLOY_USER_AND_IP }} << EOF
             docker pull nabin968/gh-heritage-frontend-app:${{ github.sha }}
             docker rm -f user_frontend || true
-            docker run -d --name user_frontend -p 3000:3000 nabin968/gh-heritage-frontend-app:${{ github.sha }}
+            docker run -d --name user_frontend --network proxy -p 3000:3000 nabin968/gh-heritage-frontend-app:${{ github.sha }}
           EOF
