@@ -24,19 +24,13 @@ jobs:
           #   - DATABASE_URL=${{ secrets.DATABASE_URL }}
           push: true
           tags: nabin968/gh-heritage-frontend-app:${{ github.sha }}
-      - name: Build and Push Docker Image
-        uses: docker/build-push-action@v4
-        with: 
-          context: .
-          file: ./Dockerfile.frontend
-          push: true
-          tags: nabin968/gh-heritage-frontend-app:${{ github.sha }}
 
       - name: Deploy to VM
         run: |
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/ssh_key
           chmod 600 ~/ssh_key
-          ssh -o StrictHostKeyChecking=no -i ~/ssh_key ${{ secrets.DEPLOY_USER_AND_IP }} << 'EOF'
-            docker pull nabin968/gh-heritage-frontend-app:${GITHUB_SHA}
+          ssh -o StrictHostKeyChecking=no -i ~/ssh_key ${{ secrets.DEPLOY_USER_AND_IP }} << EOF
+            docker pull nabin968/gh-heritage-frontend-app:${{ github.sha }}
             docker rm -f user_frontend || true
-            docker run -d --name user_frontend -p 3000:3000 nabin968/gh-heritage-frontend-app:${GITHUB_SHA}
+            docker run -d --name user_frontend -p 3000:3000 nabin968/gh-heritage-frontend-app:${{ github.sha }}
+          EOF
